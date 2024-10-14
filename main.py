@@ -1,34 +1,26 @@
-from flask import Flask, jsonify
-import json
-from telewbot.services.external import get_weather
+from flask import Flask, jsonify, request,Response
 
-
-from telewbot.models.response import WeatherResponse
+from telewbot.services.service import parse_msg, send_msg
 
 app = Flask(__name__)
 
-@app.route('/data/<string:city>', methods=['GET'])
-def get_data(city):
-    """Endpoint to fetch data from an external API."""
-    data = get_weather(city)
-    # Deserialize JSON into WeatherResponse object
-    weather_data = WeatherResponse.from_json(data)
-
-    # Print the deserialized object
-    a = data
-
-    # Access specific fields
-    city = weather_data.name
-    temperature = weather_data.main.temp
-    weather = weather_data.weather[0].description
-    wspeed = weather_data.wind.speed
     
-    resp = "temperture is"+str(temperature)
-    
-    if data is not None:
-        return jsonify(resp), 200  # Return fetched data with a 200 status code
+@app.route("/", methods=['POST', 'GET'])
+def index():
+    if request.method == 'POST':
+        msg = request.get_json()
+        id, answer = parse_msg(msg)
+
+        #if city is not found, asks to enter correct name
+        if not answer:
+            send_msg(id, "Проверьте написание города")
+            return Response('ok', status=200)
+        
+        send_msg(id, answer)
+        return Response('ok', status=200)
     else:
-        return jsonify({"error": "Failed to fetch data from external API."}), 500  # Return error message
+        return "Чтобы узнать погоду, введите название города на английском языке."
+    
 
 if __name__ == '__main__':
     app.run(debug=True)
